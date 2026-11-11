@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Forfettario">
+<meta name="theme-color" content="#0D0C0B" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F7F4EF" media="(prefers-color-scheme: light)">
+<title>Calcolatore Forfettario</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ===== Token DeltaStop LUTs ===== */
+  :root {
+    --color-accent: #1EEF3C;
+    --bg-base: #0D0C0B;
+    --bg-surface: #161513;
+    --bg-subtle: #1F1E1B;
+    --border: #2E2C28;
+    --text-primary: #F0EDE8;
+    --text-secondary: #9A9690;
+    --text-tertiary: #5E5C57;
+    --accent: var(--color-accent);
+    --on-accent: #0D0C0B;
+    --grain-opacity: 0.05;
+
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    --radius-sm: 3px;
+    --radius-md: 6px;
+    --radius-lg: 10px;
+    --ease: cubic-bezier(0.2, 0, 0, 1);
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg-base: #F7F4EF;
+      --bg-surface: #F0EDE6;
+      --bg-subtle: #E8E4DC;
+      --border: #D6D2C8;
+      --text-primary: #1C1A17;
+      --text-secondary: #5C5A55;
+      --text-tertiary: #8C8A84;
+      --accent: #16882E;
+      --on-accent: #F7F4EF;
+      --grain-opacity: 0.04;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg-base: #F7F4EF;
+      --bg-surface: #F0EDE6;
+      --bg-subtle: #E8E4DC;
+      --border: #D6D2C8;
+      --text-primary: #1C1A17;
+      --text-secondary: #5C5A55;
+      --text-tertiary: #8C8A84;
+      --accent: #16882E;
+      --on-accent: #F7F4EF;
+      --grain-opacity: 0.04;
+      color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg-base); color: var(--text-primary); }
+  body {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+    padding:
+      calc(env(safe-area-inset-top) + 20px)
+      calc(env(safe-area-inset-right) + 16px)
+      calc(env(safe-area-inset-bottom) + 32px)
+      calc(env(safe-area-inset-left) + 16px);
+  }
+  /* grana pellicola, solo sullo sfondo */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    opacity: var(--grain-opacity); mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; }
+  .hidden { display: none !important; }
+
+  /* header */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  h1 { font-size: 22px; font-weight: 400; letter-spacing: -0.01em; line-height: 1.2; margin: 0; white-space: nowrap; }
+  .iconbtn {
+    flex: none; height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px;
+    background: transparent; color: var(--text-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius-md); font: 500 14px/1 var(--font-sans); cursor: pointer;
+  }
+  .iconbtn svg { width: 15px; height: 15px; }
+  .actions { display: flex; align-items: center; gap: 6px; flex: none; }
+  .themebtn {
+    width: 36px; height: 36px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; color: var(--text-tertiary); border: 0; border-radius: var(--radius-md); cursor: pointer; padding: 0;
+  }
+  .themebtn svg { width: 18px; height: 18px; }
+
+  /* tab: rail con sottolineatura */
+  .tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .tabs button {
+    appearance: none; background: none; border: 0; padding: 0 0 11px; margin-bottom: -1px; cursor: pointer;
+    font: 400 16px/1.2 var(--font-sans); color: var(--text-secondary);
+    border-bottom: 2px solid transparent; white-space: nowrap;
+    transition: color 120ms var(--ease), border-color 120ms var(--ease);
+  }
+  .tabs button[aria-selected="true"] { color: var(--text-primary); font-weight: 500; border-bottom-color: var(--accent); }
+
+  /* sezioni */
+  .section { margin-bottom: 28px; }
+  .eyebrow {
+    font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-tertiary); margin: 0 0 12px;
+  }
+  .hint { font-size: 14px; color: var(--text-secondary); margin: -4px 0 14px; }
+
+  /* campi */
+  .field { display: block; margin-bottom: 14px; min-width: 0; }
+  .field:last-child { margin-bottom: 0; }
+  .field > span { display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .inputbox { position: relative; }
+  .inputbox input {
+    width: 100%; height: 48px; padding: 0 36px 0 12px;
+    font: 400 18px/1 var(--font-sans); font-feature-settings: "tnum" 1;
+    color: var(--text-primary); background: var(--bg-subtle);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    -webkit-appearance: none; appearance: none; outline: none;
+    transition: border-color 120ms var(--ease);
+  }
+  .inputbox input:focus { border-color: var(--accent); }
+  .inputbox input:disabled { color: var(--text-tertiary); }
+  .inputbox .unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; color: var(--text-tertiary); pointer-events: none; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .row2 .field { margin-bottom: 0; }
+
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button {
+    height: 44px; font: 400 16px/1 var(--font-sans); color: var(--text-secondary);
+    background: transparent; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .seg button::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: transparent; }
+  .seg button[aria-pressed="true"] { color: var(--text-primary); font-weight: 500; background: var(--bg-subtle); border-color: var(--text-tertiary); }
+  .seg button[aria-pressed="true"]::before { background: var(--accent); }
+
+  /* risultati */
+  .result { border-top: 1px solid var(--border); padding: 16px 0; }
+  .result:first-of-type { border-top: 0; padding-top: 0; }
+  .result .lbl { font-size: 14px; color: var(--text-secondary); }
+  .result .val { font-size: 36px; font-weight: 300; letter-spacing: -0.02em; line-height: 1.15; margin: 2px 0 6px; white-space: nowrap; }
+  .result .sub { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; color: var(--text-secondary); }
+  .result .sub strong { color: var(--text-primary); font-weight: 500; }
+  .copy {
+    flex: none; height: 32px; padding: 0 12px; font: 500 13px/1 var(--font-sans);
+    color: var(--text-primary); background: transparent; border: 1px solid var(--border);
+    border-radius: var(--radius-md); cursor: pointer;
+  }
+  .copy.done { border-color: var(--accent); color: var(--accent); }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 4px 0 16px; }
+  .split .box { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px; min-width: 0; }
+  .split .who { font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); white-space: nowrap; }
+  .split .amt { font-size: 22px; font-weight: 400; letter-spacing: -0.01em; margin-top: 4px; white-space: nowrap; }
+  .split .pct { font-size: 13px; color: var(--text-secondary); }
+
+  dl { margin: 0; }
+  .line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15px; }
+  .line:last-child { border-bottom: 0; }
+  .line dt { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .line dd { margin: 0; white-space: nowrap; color: var(--text-primary); }
+  .line.strong dt, .line.strong dd { color: var(--text-primary); font-weight: 500; }
+  details.detail { margin-top: 4px; }
+  details.detail summary {
+    list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0; border-top: 1px solid var(--border); font-size: 15px; color: var(--text-secondary);
+  }
+  details.detail summary::-webkit-details-marker { display: none; }
+  details.detail summary svg { width: 16px; height: 16px; transition: transform 200ms var(--ease); }
+  details.detail[open] summary svg { transform: rotate(180deg); }
+  .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 4px 14px; }
+
+  .warn { font-size: 14px; color: var(--text-primary); border-left: 2px solid var(--accent); padding-left: 10px; margin-top: 12px; }
+
+  /* impostazioni (vista intera, niente pannello sovrapposto) */
+  .back { appearance: none; background: none; border: 0; padding: 0; color: var(--text-secondary); font: 400 15px/1 var(--font-sans); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; }
+  h2 { font-size: 24px; font-weight: 400; letter-spacing: -0.01em; line-height: 1.2; margin: 0 0 6px; }
+  .switchrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 18px 0 20px; }
+  .switch { position: relative; width: 44px; height: 24px; flex: none; padding: 0; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-subtle); cursor: pointer; transition: background 200ms var(--ease), border-color 200ms var(--ease); }
+  .switch span { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--text-secondary); transition: left 200ms var(--ease), background 200ms var(--ease); }
+  .switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+  .switch[aria-checked="true"] span { left: 22px; background: var(--on-accent); }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; }
+  .btn { height: 48px; font: 500 16px/1 var(--font-sans); border-radius: var(--radius-md); cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-primary); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+  footer { text-align: center; font-size: 13px; color: var(--text-tertiary); margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- VISTA CALCOLATORE -->
+  <div id="mainView">
+    <header>
+      <div class="brand">
+        <h1>Forfettario</h1>
+      </div>
+      <div class="actions">
+      <button class="themebtn" id="themeBtn" type="button" aria-label="Tema"></button>
+      <button class="iconbtn" id="openSettings" type="button" aria-label="Impostazioni fiscali">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+        Aliquote
+      </button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="divisione" aria-selected="true">Divisione</button>
+      <button role="tab" data-tab="diretto" aria-selected="false">Da fattura</button>
+      <button role="tab" data-tab="inverso" aria-selected="false">Da netto</button>
+    </nav>
+
+    <!-- DIVISIONE -->
+    <section id="tab-divisione">
+      <div class="section">
+        <p class="eyebrow">Dati del lavoro</p>
+        <label class="field"><span>Totale pagato dal cliente</span>
+          <div class="inputbox"><input id="d_tot" inputmode="decimal" autocomplete="off"><span class="unit">€</span></div></label>
+        <label class="field"><span>Spese da anticipare (noleggio, ecc.)</span>
+          <div class="inputbox"><input id="d_nol" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">€</span></div></label>
+        <div class="field"><span>Chi anticipa le spese</span>
+          <div class="seg" id="d_who">
+            <button type="button" data-who="Luca" aria-pressed="true">Luca</button>
+            <button type="button" data-who="Manuel" aria-pressed="false">Manuel</button>
+          </div></div>
+        <div class="row2">
+          <label class="field"><span>Quota Luca</span>
+            <div class="inputbox"><input id="d_qL" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div></label>
+          <label class="field"><span>Quota Manuel</span>
+            <div class="inputbox"><input id="d_qM" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div></label>
+        </div>
+        <label class="field"><span>Ritenuta d'acconto Manuel</span>
+          <div class="inputbox"><input id="d_rit" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div></label>
+      </div>
+
+      <div class="section">
+        <p class="eyebrow">Risultato</p>
+        <div class="result">
+          <div class="lbl">Fattura Luca, bollo incluso</div>
+          <div class="val" id="r_fatt">–</div>
+          <div class="sub"><span>Su Fiscozen <strong id="r_fisco">–</strong></span>
+            <button class="copy" type="button" data-copy="r_fisco">Copia</button></div>
+        </div>
+        <div class="result">
+          <div class="lbl">Ricevuta Manuel, lordo</div>
+          <div class="val" id="r_ric">–</div>
+          <div class="sub"><span>Ritenuta <strong id="r_rit">–</strong></span>
+            <button class="copy" type="button" data-copy="r_ric">Copia</button></div>
+        </div>
+        <div class="split">
+          <div class="box"><div class="who">Netto Luca</div><div class="amt" id="r_nL">–</div><div class="pct" id="r_pL"></div></div>
+          <div class="box"><div class="who">Netto Manuel</div><div class="amt" id="r_nM">–</div><div class="pct" id="r_pM"></div></div>
+        </div>
+        <dl><div class="line strong"><dt>Totale netto</dt><dd id="r_nT">–</dd></div></dl>
+        <div class="warn hidden" id="d_warn"></div>
+      </div>
+    </section>
+
+    <!-- DIRETTO -->
+    <section id="tab-diretto" class="hidden">
+      <div class="section">
+        <p class="eyebrow">Ho una fattura di…</p>
+        <p class="hint">Il totale finale, bollo compreso.</p>
+        <div class="row2">
+          <label class="field"><span>Totale fattura</span>
+            <div class="inputbox"><input id="f_tot" inputmode="decimal" autocomplete="off"><span class="unit">€</span></div></label>
+          <label class="field"><span>Spese</span>
+            <div class="inputbox"><input id="f_spese" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">€</span></div></label>
+        </div>
+      </div>
+      <div class="section">
+        <p class="eyebrow">Risultato</p>
+        <div class="result">
+          <div class="lbl">Netto pulito</div>
+          <div class="val" id="f_netto">–</div>
+          <div class="sub"><span>Su Fiscozen <strong id="f_fisco">–</strong></span>
+            <button class="copy" type="button" data-copy="f_fisco">Copia</button></div>
+        </div>
+        <details class="detail"><summary>Dettaglio calcolo<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="card"><dl>
+          <div class="line"><dt>Prestazione (su Fiscozen)</dt><dd id="f_prest">–</dd></div>
+          <div class="line"><dt>Marca da bollo</dt><dd id="f_bollo">–</dd></div>
+          <div class="line"><dt>Rivalsa INPS 4%</dt><dd id="f_riv">–</dd></div>
+          <div class="line strong"><dt>Totale fattura</dt><dd id="f_totale">–</dd></div>
+          <div class="line"><dt>Imponibile fiscale</dt><dd id="f_impf">–</dd></div>
+          <div class="line"><dt>Contributi INPS</dt><dd id="f_inps">–</dd></div>
+          <div class="line"><dt>Imposta sostitutiva</dt><dd id="f_tax">–</dd></div>
+          <div class="line strong"><dt>Totale tasse</dt><dd id="f_tasse">–</dd></div>
+          <div class="line"><dt>Spese</dt><dd id="f_spese_out">–</dd></div>
+        </dl></div></details>
+      </div>
+    </section>
+
+    <!-- INVERSO -->
+    <section id="tab-inverso" class="hidden">
+      <div class="section">
+        <p class="eyebrow">Voglio incassare…</p>
+        <p class="hint">Il netto che vuoi in tasca, senza rivalsa.</p>
+        <div class="row2">
+          <label class="field"><span>Netto obiettivo</span>
+            <div class="inputbox"><input id="i_net" inputmode="decimal" autocomplete="off"><span class="unit">€</span></div></label>
+          <label class="field"><span>Spese</span>
+            <div class="inputbox"><input id="i_spese" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">€</span></div></label>
+        </div>
+      </div>
+      <div class="section">
+        <p class="eyebrow">Risultato</p>
+        <div class="result">
+          <div class="lbl">Fattura, bollo incluso</div>
+          <div class="val" id="i_tot">–</div>
+          <div class="sub"><span>Su Fiscozen <strong id="i_fisco">–</strong></span>
+            <button class="copy" type="button" data-copy="i_fisco">Copia</button></div>
+        </div>
+        <details class="detail"><summary>Dettaglio calcolo<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="card"><dl>
+          <div class="line"><dt>Prestazione (su Fiscozen)</dt><dd id="i_prest">–</dd></div>
+          <div class="line"><dt>Marca da bollo</dt><dd id="i_bollo">–</dd></div>
+          <div class="line"><dt>Rivalsa INPS 4%</dt><dd id="i_riv">–</dd></div>
+          <div class="line strong"><dt>Totale fattura</dt><dd id="i_totale">–</dd></div>
+          <div class="line"><dt>Imponibile fiscale</dt><dd id="i_impf">–</dd></div>
+          <div class="line"><dt>Contributi INPS</dt><dd id="i_inps">–</dd></div>
+          <div class="line"><dt>Imposta sostitutiva</dt><dd id="i_tax">–</dd></div>
+          <div class="line strong"><dt>Totale tasse</dt><dd id="i_tasse">–</dd></div>
+          <div class="line"><dt>Spese</dt><dd id="i_spese_out">–</dd></div>
+        </dl></div></details>
+      </div>
+    </section>
+
+    <footer>I numeri restano su questo dispositivo.</footer>
+  </div>
+
+  <!-- VISTA IMPOSTAZIONI -->
+  <div id="settingsView" class="hidden">
+    <button class="back" type="button" id="closeSettingsTop">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Calcolatore
+    </button>
+    <h2>Aliquote</h2>
+    <p class="hint" style="margin:0">Sono quelle del tuo foglio. Cambiale solo se cambia la legge o il tuo regime.</p>
+    <div class="switchrow">
+      <span>Sblocca per modificare</span>
+      <button class="switch" type="button" role="switch" aria-checked="false" id="unlock"><span></span></button>
+    </div>
+    <label class="field"><span>Coefficiente di redditività</span>
+      <div class="inputbox"><input id="s_coeff" inputmode="decimal" disabled><span class="unit">%</span></div></label>
+    <div class="row2">
+      <label class="field"><span>Aliquota INPS</span>
+        <div class="inputbox"><input id="s_inps" inputmode="decimal" disabled><span class="unit">%</span></div></label>
+      <label class="field"><span>Imposta sostitutiva</span>
+        <div class="inputbox"><input id="s_tax" inputmode="decimal" disabled><span class="unit">%</span></div></label>
+    </div>
+    <div class="row2">
+      <label class="field"><span>Rivalsa INPS</span>
+        <div class="inputbox"><input id="s_riv" inputmode="decimal" disabled><span class="unit">%</span></div></label>
+      <label class="field"><span>Marca da bollo</span>
+        <div class="inputbox"><input id="s_bollo" inputmode="decimal" disabled><span class="unit">€</span></div></label>
+    </div>
+    <div class="btns">
+      <button class="btn" type="button" id="resetSettings">Ripristina</button>
+      <button class="btn primary" type="button" id="closeSettings">Fatto</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== CALCOLI (stesse formule del foglio "Calcolo netto-lordo") ===== */
+var DEFAULTS = { coeff: 0.78, tax: 0.05, inps: 0.2607, riv: 0.04, bollo: 2 };
+
+// Cifra da inserire su Fiscozen = prestazione.
+// Fiscozen calcola la rivalsa 4% su prestazione + bollo:
+// totale = (prestazione + bollo) x 1,04  ->  prestazione = totale / 1,04 - bollo
+// Fiscozen arrotonda al centesimo: si sceglie la prestazione che, rifatta
+// come la rifà Fiscozen, restituisce lo stesso totale arrotondato.
+function fiscozen(T, s) {
+  var c = function (x) { return Math.round(x * 100) / 100; };
+  var target = c(T);
+  var base = c(target / (1 + s.riv) - s.bollo);
+  var tot = function (p) { return c(p + s.bollo + c((p + s.bollo) * s.riv)); };
+  var tries = [base, c(base + 0.01), c(base - 0.01)];
+  for (var i = 0; i < tries.length; i++) { if (tot(tries[i]) === target) return tries[i]; }
+  return base;
+}
+
+// Calcolo diretto: colonna E del foglio
+function calcDiretto(T, spese, s) {
+  var comp = T / (1 + s.riv);                 // =E10/(1+Riv)
+  var riv = comp * s.riv;                     // =E12*Riv
+  var fatt = T - s.bollo;                     // =E16-Bollo
+  var impf = fatt * s.coeff;                  // =E14*Coeff
+  var inps = impf * s.inps;
+  var tax = impf * s.tax;
+  var tasse = inps + tax;
+  var nettoRiv = T - tasse - s.bollo;         // =E16-E22-Bollo
+  var netto = nettoRiv - riv - (spese || 0);  // =E25-E13-E26
+  var prest = fiscozen(T, s);
+  return { prest: prest, totale: T, spese: spese || 0, comp: comp, riv: riv, fatt: fatt, bollo: s.bollo, impf: impf, inps: inps, tax: tax, tasse: tasse, nettoRiv: nettoRiv, netto: netto };
+}
+
+// Calcolo inverso: colonna B righe 10-27 del foglio
+function calcInverso(N, spese, s) {
+  spese = spese || 0;
+  var comp = (N + spese + s.bollo * s.riv / (1 + s.riv)) / ((1 + s.riv) * (1 - s.coeff * (s.inps + s.tax)) - s.riv);
+  var fatt = comp * (1 + s.riv);
+  var T = fatt + s.bollo;
+  var riv = T * s.riv / (1 + s.riv);          // =B16*Riv/(1+Riv)
+  var impf = fatt * s.coeff;
+  var inps = impf * s.inps;
+  var tax = impf * s.tax;
+  var tasse = inps + tax;
+  var check = T - tasse - s.bollo - riv - spese;
+  var prest = fiscozen(T, s);
+  return { prest: prest, totale: T, spese: spese, comp: comp, riv: riv, fatt: fatt, bollo: s.bollo, T: T, impf: impf, inps: inps, tax: tax, tasse: tasse, check: check };
+}
+
+// Divisione ricavo: righe 32-49 del foglio
+function calcDivisione(P, nol, chi, qL, rit, s) {
+  var imp = s.coeff * (s.inps + s.tax);
+  var resa = 1 - imp - s.riv / (1 + s.riv);
+  var bolloNetto = s.bollo * (1 - imp);
+  var resaManu = 1 - rit;
+  var anticipa = chi === "Luca" ? 1 : 0;
+  var T = (nol * (anticipa - qL) + (1 - qL) * bolloNetto + qL * resaManu * P) / ((1 - qL) * resa + qL * resaManu);
+  var ric = P - T;
+  var ritenuta = ric * rit;
+  var nL = T - s.bollo - (T - s.bollo) * imp - T / (1 + s.riv) * s.riv - (chi === "Luca" ? nol : 0);
+  var nM = ric * (1 - rit) - (chi === "Manuel" ? nol : 0);
+  var tot = nL + nM;
+  return { T: T, fisco: fiscozen(T, s), ric: ric, ritenuta: ritenuta, nL: nL, nM: nM, tot: tot, pL: tot ? nL / tot : 0 };
+}
+/* ===== FINE CALCOLI ===== */
+
+(function () {
+  var store = {
+    get: function (k) { try { var v = localStorage.getItem("forf_" + k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem("forf_" + k, JSON.stringify(v)); } catch (e) {} }
+  };
+  var $ = function (id) { return document.getElementById(id); };
+
+  // formato italiano con punto delle migliaia anche sotto i 10.000 (1.264,83)
+  function plain(n) {
+    var neg = n < 0, a = Math.abs(n);
+    var parts = (Math.round(a * 100) / 100).toFixed(2).split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return (neg ? "−" : "") + parts[0] + "," + parts[1];
+  }
+  function eur(n) { return plain(n) + " €"; }
+  function pct1(n) { return (Math.round(n * 1000) / 10).toFixed(1).replace(".", ",") + "%"; }
+
+  function parse(str) {
+    if (str == null) return NaN;
+    var t = String(str).trim().replace(/\s|€|%/g, "");
+    if (!t) return NaN;
+    if (t.indexOf(",") >= 0) t = t.replace(/\./g, "").replace(",", ".");
+    return Number(t);
+  }
+  function fmtIn(n, decimals) {
+    if (n == null || isNaN(n)) return "";
+    var r = Math.round(n * Math.pow(10, decimals)) / Math.pow(10, decimals);
+    return String(r).replace(".", ",");
+  }
+  function show(id, v) { $(id).textContent = (v == null || !isFinite(v)) ? "–" : eur(v); }
+
+  /* impostazioni */
+  var settings = Object.assign({}, DEFAULTS, store.get("settings") || {});
+  var sMap = { s_coeff: ["coeff", true], s_tax: ["tax", true], s_inps: ["inps", true], s_riv: ["riv", true], s_bollo: ["bollo", false] };
+  function fillSettings() {
+    Object.keys(sMap).forEach(function (id) {
+      var k = sMap[id][0], isPct = sMap[id][1];
+      $(id).value = fmtIn(isPct ? settings[k] * 100 : settings[k], 4);
+    });
+  }
+  Object.keys(sMap).forEach(function (id) {
+    $(id).addEventListener("input", function () {
+      var k = sMap[id][0], isPct = sMap[id][1], v = parse(this.value);
+      if (isNaN(v)) return;
+      settings[k] = isPct ? v / 100 : v;
+      store.set("settings", settings);
+      recalc();
+    });
+  });
+  function setLock(on) {
+    $("unlock").setAttribute("aria-checked", on ? "true" : "false");
+    Object.keys(sMap).forEach(function (id) { $(id).disabled = !on; });
+  }
+  $("unlock").addEventListener("click", function () { setLock(this.getAttribute("aria-checked") !== "true"); });
+  function openSettings() {
+    fillSettings(); setLock(false);
+    $("mainView").classList.add("hidden"); $("settingsView").classList.remove("hidden");
+    window.scrollTo(0, 0);
+  }
+  function closeSettings() {
+    setLock(false);
+    $("settingsView").classList.add("hidden"); $("mainView").classList.remove("hidden");
+    window.scrollTo(0, 0);
+  }
+  $("openSettings").addEventListener("click", openSettings);
+  $("closeSettings").addEventListener("click", closeSettings);
+  $("closeSettingsTop").addEventListener("click", closeSettings);
+  $("resetSettings").addEventListener("click", function () {
+    settings = Object.assign({}, DEFAULTS); store.set("settings", settings); fillSettings(); recalc();
+  });
+
+  /* tema: automatico → scuro → chiaro */
+  var ICONS = {
+    auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>',
+    dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+    light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>'
+  };
+  var NAMES = { auto: "Tema automatico", dark: "Tema scuro", light: "Tema chiaro" };
+  function applyTheme(t) {
+    if (t === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", t);
+    $("themeBtn").innerHTML = ICONS[t];
+    $("themeBtn").setAttribute("aria-label", NAMES[t]);
+    $("themeBtn").title = NAMES[t];
+  }
+  var theme = store.get("theme") || "auto";
+  applyTheme(theme);
+  $("themeBtn").addEventListener("click", function () {
+    theme = theme === "auto" ? "dark" : theme === "dark" ? "light" : "auto";
+    store.set("theme", theme); applyTheme(theme);
+  });
+
+  /* tab */
+  var tabs = document.querySelectorAll(".tabs button");
+  function setTab(name) {
+    tabs.forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === name ? "true" : "false"); });
+    ["divisione", "diretto", "inverso"].forEach(function (t) { $("tab-" + t).classList.toggle("hidden", t !== name); });
+    store.set("tab", name);
+  }
+  tabs.forEach(function (b) { b.addEventListener("click", function () { setTab(b.dataset.tab); }); });
+
+  /* input salvati */
+  var saved = store.get("inputs") || {};
+  var inputs = Object.assign({ d_tot: "1500", d_nol: "42,41", d_who: "Luca", d_qL: "50", d_rit: "20", f_tot: "", f_spese: "", i_net: "", i_spese: "" }, saved);
+  ["d_tot", "d_nol", "d_qL", "d_rit", "f_tot", "f_spese", "i_net", "i_spese"].forEach(function (id) {
+    $(id).value = inputs[id];
+    $(id).addEventListener("input", function () {
+      inputs[id] = this.value;
+      if (id === "d_qL") { var v = parse(this.value); $("d_qM").value = isNaN(v) ? "" : fmtIn(100 - v, 2); }
+      save(); recalc();
+    });
+  });
+  $("d_qM").addEventListener("input", function () {
+    var v = parse(this.value);
+    $("d_qL").value = isNaN(v) ? "" : fmtIn(100 - v, 2);
+    inputs.d_qL = $("d_qL").value; save(); recalc();
+  });
+  $("d_qM").value = fmtIn(100 - parse(inputs.d_qL), 2);
+  function setWho(w) {
+    inputs.d_who = w;
+    document.querySelectorAll("#d_who button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.who === w ? "true" : "false"); });
+  }
+  document.querySelectorAll("#d_who button").forEach(function (b) {
+    b.addEventListener("click", function () { setWho(b.dataset.who); save(); recalc(); });
+  });
+  setWho(inputs.d_who);
+  function save() { store.set("inputs", inputs); }
+
+  /* copia (cifra senza punto delle migliaia, pronta per Fiscozen) */
+  document.querySelectorAll(".copy").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var raw = b.dataset.raw;
+      if (!raw) return;
+      var done = function () { b.textContent = "Copiato"; b.classList.add("done"); setTimeout(function () { b.textContent = "Copia"; b.classList.remove("done"); }, 1400); };
+      try { navigator.clipboard.writeText(raw).then(done, function () { b.textContent = raw; }); }
+      catch (e) { b.textContent = raw; }
+    });
+  });
+  function setCopy(targetId, v) {
+    var b = document.querySelector('.copy[data-copy="' + targetId + '"]');
+    if (b) b.dataset.raw = isFinite(v) ? (Math.round(v * 100) / 100).toFixed(2).replace(".", ",") : "";
+  }
+
+  /* ricalcolo */
+  function recalc() {
+    var s = settings;
+    var P = parse(inputs.d_tot), nol = parse(inputs.d_nol), qL = parse(inputs.d_qL) / 100, rit = parse(inputs.d_rit) / 100;
+    if (isNaN(nol)) nol = 0;
+    var warn = $("d_warn");
+    if (isFinite(P) && isFinite(qL) && isFinite(rit)) {
+      var d = calcDivisione(P, nol, inputs.d_who, qL, rit, s);
+      show("r_fatt", d.T); show("r_fisco", d.fisco); show("r_ric", d.ric); show("r_rit", d.ritenuta);
+      show("r_nL", d.nL); show("r_nM", d.nM); show("r_nT", d.tot);
+      $("r_pL").textContent = pct1(d.pL); $("r_pM").textContent = pct1(1 - d.pL);
+      setCopy("r_fisco", d.fisco); setCopy("r_ric", d.ric);
+      var msg = "";
+      if (qL < 0 || qL > 1) msg = "La quota deve stare tra 0 e 100%.";
+      else if (d.T < 0 || d.ric < 0) msg = "Con questi valori una delle due parti va in negativo: controlla spese e quote.";
+      warn.textContent = msg; warn.classList.toggle("hidden", !msg);
+    } else {
+      ["r_fatt", "r_fisco", "r_ric", "r_rit", "r_nL", "r_nM", "r_nT"].forEach(function (id) { show(id, null); });
+      $("r_pL").textContent = ""; $("r_pM").textContent = ""; warn.classList.add("hidden");
+      setCopy("r_fisco", NaN); setCopy("r_ric", NaN);
+    }
+    var T = parse(inputs.f_tot), sp = parse(inputs.f_spese);
+    var f = isFinite(T) ? calcDiretto(T, isNaN(sp) ? 0 : sp, s) : null;
+    ["prest", "bollo", "riv", "totale", "impf", "inps", "tax", "tasse", "netto"].forEach(function (k) { show("f_" + k, f ? f[k] : null); });
+    show("f_spese_out", f ? f.spese : null);
+    show("f_fisco", f ? f.prest : null); setCopy("f_fisco", f ? f.prest : NaN);
+    var N = parse(inputs.i_net), isp = parse(inputs.i_spese);
+    var iv = isFinite(N) ? calcInverso(N, isNaN(isp) ? 0 : isp, s) : null;
+    show("i_tot", iv && iv.T); show("i_fisco", iv && iv.prest);
+    setCopy("i_fisco", iv ? iv.prest : NaN);
+    ["prest", "bollo", "riv", "totale", "impf", "inps", "tax", "tasse"].forEach(function (k) { show("i_" + k, iv ? iv[k] : null); });
+    show("i_spese_out", iv ? iv.spese : null);
+  }
+
+  setTab(store.get("tab") || "divisione");
+  recalc();
+})();
+</script>
+</body>
+</html>
