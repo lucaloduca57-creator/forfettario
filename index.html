@@ -627,6 +627,13 @@ function calcDivisione(P, nol, chi, qL, rit, s) {
 
   setTab(store.get("tab") || "divisione");
   recalc();
+
+  /* uso offline: attivo solo sul sito pubblicato (https) */
+  try {
+    if ("serviceWorker" in navigator && location.protocol === "https:") {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }
+  } catch (e) {}
 })();
 </script>
 </body>
